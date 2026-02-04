@@ -1,0 +1,41 @@
+---
+# ---------------------------------------------------------------------------
+# troubleshooting / defaults / main.yml
+# Low-precedence defaults — override via vars/, playbook vars, or extra-vars.
+# ---------------------------------------------------------------------------
+
+# How deep the diagnostic sweep should go
+#   basic   – top-level service status + disk/mem snapshot
+#   deep    – includes open ports, stale locks, core-dump scan
+#   full    – adds thread-dump, network trace capture
+troubleshooting_depth: basic
+
+# Where collected diagnostics are staged on the target host before retrieval
+troubleshooting_artifact_dir: /var/tmp/ansible_diag
+
+# Retention window (days) for local diagnostic artifacts
+troubleshooting_artifact_retention_days: 7
+
+# Log files to scrape for error patterns
+troubleshooting_log_paths:
+  - /var/log/syslog
+  - /var/log/messages
+  - /var/log/auth.log
+
+# Regex patterns injected into the scrape; applications add their own in vars/
+troubleshooting_error_patterns:
+  - "FATAL"
+  - "ERROR"
+  - "CRITICAL"
+  - "OOM killed"
+  - "segfault"
+
+# Services to health-check during a diagnostic run
+troubleshooting_services: []
+
+# Notification channel — slack_webhook_url is injected at playbook level
+troubleshooting_notify_on_finding: true
+troubleshooting_slack_webhook_url: ""
+
+# Whether to auto-restart a service that fails the health check
+troubleshooting_auto_restart_failed_services: false

@@ -1,0 +1,113 @@
+---
+# ---------------------------------------------------------------------------
+# sla / tasks / main.yml
+# ---------------------------------------------------------------------------
+
+- name: "[sla] Abort if SLA role is disabled"
+  ansible.builtin.debug:
+    msg: "SLA checks are DISABLED (sla_enabled=false). Skipping."
+  when: not sla_enabled
+
+- name: "[sla] Ensure state directory exists"
+  ansible.builtin.file:
+    path: "{{ sla_state_dir }}"
+    state: directory
+    mode: "0750"
+    owner: root
+  when: sla_enabled
+
+# ======================================================================
+# 1 – Uptime SLA
+# ======================================================================
+# In production the current uptime % would be fed in via a fact or
+# calculated from an availability data source.  Here we pull it from
+# a lightweight fact-gathering step.
+- name: "[sla] Gather system uptime seconds"
+  ansible.builtin.setup:
+    filter: ansible_uptime_seconds
+  when: sla_enabled
+
+- name: "[sla] Evaluate uptime SLA"
+  sla_check:
+    metric_type: uptime
+    current_value: "{{ sla_current_uptime_percent | default(99.85) | float }}"
+    target_value:  "{{ sla_uptime_target_percent | float }}"
+    state_file:    "{{ sla_state_dir }}/{{ sla_uptime_state_file }}"
+    severity_map:  "{{ sla_severity_map }}"
+  register: sla_uptime_result
+  when: sla_enabled
+
+# ======================================================================
+# 2 – Response-Time SLA  (only when endpoints are configured)
+# ======================================================================
+- name: "[sla] Probe each response-time endpoint"
+  ansible.builtin.uri:
+    url: "{{ item }}"
+    method: GET
+    timeout: "{{ (sla_response_time_max_ms / 1000) | int + 2 }}"
+    return_content: false
+  register: sla_probe_results
+  loop: "{{ sla_response_endpoints }}"
+  loop_control:
+    loop_var: item
+  when: sla_enabled and sla_response_endpoints | length > 0
+  failed_when: false   # we evaluate success/failure ourselves
+
+- name: "[sla] Evaluate response-time SLA (worst-case endpoint)"
+  sla_check:
+    metric_type:    response_time
+    current_value:  "{{ sla_worst_response_ms | default(1500) | float }}"
+    target_value:   "{{ sla_response_time_max_ms | float }}"
+    state_file:     "{{ sla_state_dir }}/{{ sla_response_state_file }}"
+    severity_map:   "{{ sla_severity_map }}"
+  register: sla_response_result
+  when: sla_enabled and sla_response_endpoints | length > 0
+
+# ======================================================================
+# 3 – Error-Rate SLA
+# ======================================================================
+- name: "[sla] Read last-minute error count from log"
+  ansible.builtin.shell:
+    cmd: |
+      cutoff=$(( $(date +%s) - 60 ))
+      awk -v cutoff="$cutoff" '$1 >= cutoff { sum += $2 } END { print sum+0 }' {{ sla_error_rate_log }}
+  register: sla_error_count_raw
+  changed_when: false
+  when: sla_enabled and sla_error_rate_log | length > 0
+  failed_when: false
+
+- name: "[sla] Evaluate error-rate SLA"
+  sla_check:
+    metric_type:   error_rate
+    current_value: "{{ sla_error_count_raw.stdout | default('0') | int | float }}"
+    target_value:  "{{ sla_error_rate_max_per_minute | float }}"
+    state_file:    "{{ sla_state_dir }}/{{ sla_error_state_file }}"
+    severity_map:  "{{ sla_severity_map }}"
+  register: sla_error_result
+  when: sla_enabled and sla_error_rate_log | length > 0
+
+# ======================================================================
+# 4 – Unified breach check → notify handlers
+# ======================================================================
+- name: "[sla] Set breach flag across all metrics"
+  ansible.builtin.set_fact:
+    sla_any_breach: >-
+      {{ (sla_uptime_result.breached | default(false)) or
+         (sla_response_result.breached | default(false)) or
+         (sla_error_result.breached | default(false)) }}
+  when: sla_enabled
+
+- name: "[sla] Render alert text"
+  ansible.builtin.template:
+    src: sla_alert.txt.j2
+    dest: "{{ sla_state_dir }}/last_alert.txt"
+    mode: "0640"
+  when: sla_enabled and (sla_any_breach | bool)
+
+- name: "[sla] Trigger SLA-breach notifications"
+  ansible.builtin.debug:
+    msg: "SLA BREACH detected — check {{ sla_state_dir }}/last_alert.txt"
+  notify:
+    - sla_notify_slack
+    - sla_notify_pagerduty
+  when: sla_enabled and (sla_any_breach | bool)

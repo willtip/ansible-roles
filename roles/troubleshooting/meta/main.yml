@@ -1,0 +1,21 @@
+---
+# ---------------------------------------------------------------------------
+# troubleshooting / meta / main.yml
+# ---------------------------------------------------------------------------
+galaxy_info:
+  author: "platform-engineering"
+  description: >
+    Diagnostic and troubleshooting role.  Collects system health snapshots,
+    scrapes logs for error patterns, and optionally performs deep port/lock
+    scanning and thread-dump capture.
+  license: "MIT"
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Ubuntu
+      versions: ["20.04", "22.04", "24.04"]
+    - name: CentOS
+      versions: ["8", "9"]
+    - name: RedHat
+      versions: ["8", "9"]
+
+dependencies: []

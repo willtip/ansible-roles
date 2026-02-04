@@ -1,0 +1,166 @@
+---
+# ---------------------------------------------------------------------------
+# approvals / tasks / main.yml
+# ---------------------------------------------------------------------------
+
+- name: "[approvals] Abort if approvals role is disabled"
+  ansible.builtin.debug:
+    msg: "Approvals role is DISABLED. Skipping gate '{{ approvals_gate_name }}'."
+  when: not approvals_enabled
+
+# Derived facts
+- name: "[approvals] Compute state-file paths"
+  ansible.builtin.set_fact:
+    approvals_decision_file: "{{ approvals_state_dir }}/{{ approvals_gate_name }}_decision.json"
+    approvals_request_file:  "{{ approvals_state_dir }}/{{ approvals_gate_name }}_request.json"
+  when: approvals_enabled
+
+# ======================================================================
+# 1 – Bootstrap
+# ======================================================================
+- name: "[approvals] Ensure state directory exists"
+  ansible.builtin.file:
+    path: "{{ approvals_state_dir }}"
+    state: directory
+    mode: "0750"
+    owner: root
+  when: approvals_enabled
+
+- name: "[approvals] Clear any stale decision file from a prior run"
+  ansible.builtin.file:
+    path: "{{ approvals_decision_file }}"
+    state: absent
+  when: approvals_enabled
+
+- name: "[approvals] Write the pending-request state file"
+  ansible.builtin.copy:
+    content: |
+      {
+        "gate_name": "{{ approvals_gate_name }}",
+        "status": "pending",
+        "requested_at": "{{ ansible_date_time.iso8601 }}",
+        "timeout_seconds": {{ approvals_timeout_seconds }},
+        "host": "{{ inventory_hostname }}"
+      }
+    dest: "{{ approvals_request_file }}"
+    mode: "0640"
+  when: approvals_enabled
+
+# ======================================================================
+# 2 – Send approval request notification
+# ======================================================================
+- name: "[approvals] Render the approval-request message"
+  ansible.builtin.template:
+    src: approval_request.txt.j2
+    dest: "{{ approvals_state_dir }}/{{ approvals_gate_name }}_request_msg.txt"
+    mode: "0640"
+  when: approvals_enabled
+
+- name: "[approvals] Notify Slack — approval required"
+  ansible.builtin.uri:
+    url: "{{ approvals_slack_webhook_url }}"
+    method: POST
+    body_format: json
+    body:
+      text: >
+        :rotating_light: *Approval Required* for gate `{{ approvals_gate_name }}`
+        on `{{ inventory_hostname }}`.
+        Timeout: {{ approvals_timeout_seconds }} seconds.
+        Write `approved` or `rejected` to
+        `{{ approvals_decision_file }}` to proceed.
+    status_code: [200]
+  when: approvals_enabled and approvals_slack_webhook_url | length > 0
+
+# ======================================================================
+# 3 – Deploy the gate-monitor helper script
+# ======================================================================
+- name: "[approvals] Copy gate-monitor script to host"
+  ansible.builtin.copy:
+    src: approval_gate_monitor.sh
+    dest: "{{ approvals_state_dir }}/approval_gate_monitor.sh"
+    mode: "0750"
+    owner: root
+  when: approvals_enabled
+
+# ======================================================================
+# 4 – Poll loop — wait for a decision file to appear
+# ======================================================================
+- name: "[approvals] Wait for decision (poll loop)"
+  ansible.builtin.shell:
+    cmd: |
+      cat "{{ approvals_decision_file }}" 2>/dev/null || echo ""
+  register: approvals_poll_result
+  until: >
+    approvals_poll_result.stdout | trim | length > 0
+  retries: "{{ (approvals_timeout_seconds / approvals_poll_interval_seconds) | int }}"
+  delay: "{{ approvals_poll_interval_seconds }}"
+  changed_when: false
+  when: approvals_enabled
+  failed_when: false   # timeout is handled below
+
+# ======================================================================
+# 5 – Escalation (if enabled and still pending at escalation window)
+# ======================================================================
+- name: "[approvals] Fire escalation notification if no decision yet"
+  ansible.builtin.debug:
+    msg: >
+      Escalation triggered for gate '{{ approvals_gate_name }}' after
+      {{ approvals_escalation_timeout_seconds }}s — no decision received.
+  notify: approvals_escalate
+  when: >
+    approvals_enabled and
+    approvals_escalation_enabled and
+    approvals_poll_result.stdout | trim | length == 0
+
+# ======================================================================
+# 6 – Evaluate the decision
+# ======================================================================
+- name: "[approvals] Parse decision"
+  ansible.builtin.set_fact:
+    approvals_decision: "{{ approvals_poll_result.stdout | trim | lower }}"
+  when: approvals_enabled
+
+- name: "[approvals] APPROVED — continue playbook"
+  ansible.builtin.debug:
+    msg: "Gate '{{ approvals_gate_name }}' APPROVED. Continuing."
+  when: approvals_enabled and approvals_decision == 'approved'
+
+- name: "[approvals] REJECTED — stop execution"
+  ansible.builtin.fail:
+    msg: "Gate '{{ approvals_gate_name }}' was REJECTED. Aborting playbook."
+  when: approvals_enabled and approvals_decision == 'rejected'
+
+- name: "[approvals] TIMEOUT — apply configured action"
+  ansible.builtin.fail:
+    msg: >
+      Gate '{{ approvals_gate_name }}' TIMED OUT after {{ approvals_timeout_seconds }}s.
+      Action: {{ approvals_timeout_action }}.
+  when: >
+    approvals_enabled and
+    approvals_decision | trim | length == 0 and
+    approvals_timeout_action == 'fail'
+
+- name: "[approvals] TIMEOUT — skip (non-fatal)"
+  ansible.builtin.debug:
+    msg: >
+      Gate '{{ approvals_gate_name }}' TIMED OUT — configured to skip.
+  when: >
+    approvals_enabled and
+    approvals_decision | trim | length == 0 and
+    approvals_timeout_action == 'skip'
+
+# ======================================================================
+# 7 – Finalise
+# ======================================================================
+- name: "[approvals] Record final state"
+  ansible.builtin.copy:
+    content: |
+      {
+        "gate_name": "{{ approvals_gate_name }}",
+        "decision": "{{ approvals_decision | default('timeout') }}",
+        "resolved_at": "{{ ansible_date_time.iso8601 }}",
+        "host": "{{ inventory_hostname }}"
+      }
+    dest: "{{ approvals_state_dir }}/{{ approvals_gate_name }}_final.json"
+    mode: "0640"
+  when: approvals_enabled

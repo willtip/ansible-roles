@@ -1,0 +1,17 @@
+---
+# ---------------------------------------------------------------------------
+# operational / vars / main.yml
+# ---------------------------------------------------------------------------
+
+# Custom module shipped in library/
+operational_health_check_module: service_health_check
+
+# Template for the ops-run summary report
+operational_run_report_template: ops_run_report.txt.j2
+
+# Backup directory is created per-run with an epoch timestamp
+# Final path = operational_backup_dir / epoch
+operational_backup_timestamp: "{{ ansible_date_time.epoch }}"
+
+# Housekeeping log file
+operational_housekeeping_log: /var/log/ansible_ops_housekeeping.log

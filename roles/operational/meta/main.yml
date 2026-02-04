@@ -1,0 +1,22 @@
+---
+# ---------------------------------------------------------------------------
+# operational / meta / main.yml
+# ---------------------------------------------------------------------------
+galaxy_info:
+  author: "platform-engineering"
+  description: >
+    Routine-operations role.  Performs service health checks via a custom
+    module, triggers graceful restarts for unhealthy services, runs disk
+    housekeeping, takes application backups with rotation, and produces a
+    run-summary report.
+  license: "MIT"
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Ubuntu
+      versions: ["20.04", "22.04", "24.04"]
+    - name: CentOS
+      versions: ["8", "9"]
+    - name: RedHat
+      versions: ["8", "9"]
+
+dependencies: []

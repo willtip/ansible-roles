@@ -1,0 +1,51 @@
+---
+# ---------------------------------------------------------------------------
+# operational / tasks / backup.yml
+# ---------------------------------------------------------------------------
+
+- name: "[operational|backup] Create timestamped backup directory"
+  ansible.builtin.file:
+    path: "{{ operational_backup_dir }}/{{ operational_backup_timestamp }}"
+    state: directory
+    mode: "0750"
+    owner: root
+
+- name: "[operational|backup] Archive each backup target"
+  ansible.builtin.shell:
+    cmd: |
+      tar -czf "{{ operational_backup_dir }}/{{ operational_backup_timestamp }}/$(basename {{ item }}).tar.gz" -C "$(dirname {{ item }})" "$(basename {{ item }})"
+  loop: "{{ operational_backup_targets }}"
+  loop_control:
+    loop_var: item
+  changed_when: true
+  when: operational_backup_targets | length > 0
+
+# ---- Rotation ---------------------------------------------------------------
+- name: "[operational|backup] List existing backup generations"
+  ansible.builtin.find:
+    paths: "{{ operational_backup_dir }}"
+    mindepth: 1
+    maxdepth: 1
+    file_system: true
+    state: directory
+  register: operational_backup_dirs
+
+- name: "[operational|backup] Sort and identify generations to remove"
+  ansible.builtin.set_fact:
+    operational_backup_excess: >-
+      {{ operational_backup_dirs.files
+         | sort(attribute='name')
+         | list
+         | difference(
+             operational_backup_dirs.files
+             | sort(attribute='name')
+             | last(operational_backup_retention_count)
+           ) }}
+
+- name: "[operational|backup] Remove excess backup generations"
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ operational_backup_excess | default([]) }}"
+  loop_control:
+    loop_var: item

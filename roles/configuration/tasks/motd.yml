@@ -1,0 +1,11 @@
+---
+# ---------------------------------------------------------------------------
+# configuration / tasks / motd.yml
+# ---------------------------------------------------------------------------
+
+- name: "[configuration|motd] Deploy MOTD banner"
+  ansible.builtin.template:
+    src: motd.j2
+    dest: "{{ configuration_motd_path }}"
+    owner: root
+    mode: "0644"

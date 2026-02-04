@@ -1,0 +1,29 @@
+---
+# ---------------------------------------------------------------------------
+# operational / tasks / main.yml
+# ---------------------------------------------------------------------------
+
+- name: "[operational] Abort if role is disabled"
+  ansible.builtin.debug:
+    msg: "Operational role is DISABLED. Skipping."
+  when: not operational_enabled
+
+- name: "[operational] Include health-check tasks"
+  ansible.builtin.include_tasks: health_check.yml
+  when: operational_enabled
+
+- name: "[operational] Include graceful-restart tasks"
+  ansible.builtin.include_tasks: restart.yml
+  when: operational_enabled
+
+- name: "[operational] Include housekeeping tasks"
+  ansible.builtin.include_tasks: housekeeping.yml
+  when: operational_enabled
+
+- name: "[operational] Include backup tasks"
+  ansible.builtin.include_tasks: backup.yml
+  when: operational_enabled and operational_backup_enabled
+
+- name: "[operational] Include report tasks"
+  ansible.builtin.include_tasks: report.yml
+  when: operational_enabled

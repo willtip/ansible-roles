@@ -1,0 +1,22 @@
+---
+# ---------------------------------------------------------------------------
+# approvals / vars / main.yml
+# ---------------------------------------------------------------------------
+
+# Valid decision values written into the decision file
+approvals_valid_decisions:
+  - approved
+  - rejected
+  - escalated
+
+# State-file naming convention: <gate_name>_decision.json
+# The actual path is assembled in tasks using approvals_gate_name.
+
+# Script that monitors the decision file (dropped via files/)
+approvals_gate_monitor_script: approval_gate_monitor.sh
+
+# Approval-request template rendered and sent via notification channel
+approvals_request_template: approval_request.txt.j2
+
+# Escalation-alert template
+approvals_escalation_template: escalation_alert.txt.j2
