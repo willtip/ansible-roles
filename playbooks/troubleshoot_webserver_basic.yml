@@ -1,0 +1,86 @@
+---
+- name: Web Server Troubleshooting - Deep Diagnostic
+  hosts: webservers
+  gather_facts: true
+  
+  vars:
+    # Troubleshooting configuration
+    troubleshooting_depth: deep
+    troubleshooting_services:
+      - nginx
+      - php-fpm
+      - mysql
+    troubleshooting_log_paths:
+      - /var/log/nginx/error.log
+      - /var/log/nginx/access.log
+      - /var/log/php-fpm/error.log
+      - /var/log/mysql/error.log
+    troubleshooting_error_patterns:
+      - "FATAL"
+      - "ERROR"
+      - "CRITICAL"
+      - "segfault"
+      - "Out of memory"
+      - "Connection refused"
+      - "upstream timed out"
+    
+    # Notification settings
+    troubleshooting_slack_webhook_url: "{{ vault_slack_webhook }}"
+    troubleshooting_notify_on_finding: true
+    
+    # Artifact retention
+    troubleshooting_artifact_retention_days: 7
+  
+  pre_tasks:
+    - name: Display troubleshooting start message
+      ansible.builtin.debug:
+        msg: |
+          ========================================
+          TROUBLESHOOTING SESSION START
+          ========================================
+          Host:       {{ inventory_hostname }}
+          Depth:      {{ troubleshooting_depth }}
+          Services:   {{ troubleshooting_services | join(', ') }}
+          Started:    {{ ansible_date_time.iso8601 }}
+          ========================================
+  
+  roles:
+    - role: troubleshooting
+      tags: ['troubleshoot', 'diagnostics']
+  
+  post_tasks:
+    - name: Fetch diagnostic artifacts from remote host
+      ansible.builtin.fetch:
+        src: "{{ troubleshooting_artifact_dir }}/{{ item }}"
+        dest: "/tmp/troubleshooting_artifacts/{{ inventory_hostname }}/"
+        flat: true
+      loop:
+        - diag_report.txt
+        - service_status.yml
+        - disk_memory_snapshot.txt
+        - log_scrape.txt
+        - deep_scan_results.txt
+      failed_when: false
+      tags: ['fetch']
+    
+    - name: Display artifact locations
+      ansible.builtin.debug:
+        msg: |
+          Diagnostic artifacts saved to:
+          - Remote: {{ troubleshooting_artifact_dir }}
+          - Local:  /tmp/troubleshooting_artifacts/{{ inventory_hostname }}/
+      tags: ['fetch']
+    
+    - name: Analyze and display critical findings
+      ansible.builtin.shell:
+        cmd: |
+          echo "=== CRITICAL FINDINGS ==="
+          grep -i "critical\|fatal\|error" {{ troubleshooting_artifact_dir }}/log_scrape.txt | head -20 || echo "No critical errors found"
+      register: critical_findings
+      changed_when: false
+      failed_when: false
+    
+    - name: Show critical findings summary
+      ansible.builtin.debug:
+        var: critical_findings.stdout_lines
+      when: critical_findings.stdout_lines | length > 0
