@@ -17,7 +17,7 @@ set -euo pipefail
 # CONFIGURATION - EDIT THESE VALUES
 # =============================================================================
 GITHUB_USERNAME="willtip"       # Replace with your GitHub username
-GITHUB_REPO="ansiblerole"                  # Repository name
+GITHUB_REPO="Ansible-Roles"                  # Repository name
 GIT_USER_NAME="Bill Tipton"                    # Your name for commits
 GIT_USER_EMAIL="willtip@gmail.com"      # Your email for commits
 USE_SSH=false                                 # true=SSH, false=HTTPS
