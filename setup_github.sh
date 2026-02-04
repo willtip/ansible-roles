@@ -17,7 +17,7 @@ set -euo pipefail
 # CONFIGURATION - EDIT THESE VALUES
 # =============================================================================
 GITHUB_USERNAME="willtip"       # Replace with your GitHub username
-GITHUB_REPO="Ansible-role"                  # Repository name
+GITHUB_REPO="Ansible-roles"                  # Repository name
 GIT_USER_NAME="Bill Tipton"                    # Your name for commits
 GIT_USER_EMAIL="willtip@gmail.com"      # Your email for commits
 USE_SSH=false                                 # true=SSH, false=HTTPS
@@ -370,7 +370,7 @@ push_to_github() {
     log_warn "About to push to: $REMOTE_URL"
     log_warn "Make sure the repository exists on GitHub!"
     echo ""
-    read -p "Continue? (y/n) " -n 1 -r
+    read -p "Continue? (y/n) " -n 1 -r REPLY
     echo
     
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
