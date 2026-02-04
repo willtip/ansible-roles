@@ -1,13 +1,12 @@
 ---
-# Ansible Lint Configuration
 skip_list:
-  - yaml[line-length]           # Allow long lines in YAML
-  - name[casing]                # Allow flexible task naming
-  - risky-file-permissions      # We handle permissions explicitly
+  - yaml[line-length]
+  - name[casing]
+  - risky-file-permissions
 
 warn_list:
-  - experimental                # Warn on experimental features
-  - role-name                   # Warn on role naming issues
+  - experimental
+  - role-name
 
 exclude_paths:
   - .github/
@@ -15,12 +14,6 @@ exclude_paths:
   - molecule/
   - venv/
 
-# Enable specific rules
-enable_list:
-  - no-tabs
-  - no-trailing-spaces
-
-# Rules configuration
 rules:
   line-length:
     max: 120
