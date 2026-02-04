@@ -1,0 +1,39 @@
+---
+# ---------------------------------------------------------------------------
+# configuration / defaults / main.yml
+# ---------------------------------------------------------------------------
+
+# Master switch — set to false in an emergency to skip all config pushes
+configuration_enabled: true
+
+# Backup original files before overwriting?  Always recommended.
+configuration_backup_enabled: true
+
+# Where on-host backups land
+configuration_backup_dir: /var/backups/ansible_config
+
+# ---------- NTP ------------------------------------------------------------
+configuration_ntp_enabled: true
+configuration_ntp_servers:
+  - "0.pool.ntp.org"
+  - "1.pool.ntp.org"
+  - "2.pool.ntp.org"
+configuration_ntp_timezone: "UTC"
+
+# ---------- sysctl tuning --------------------------------------------------
+configuration_sysctl_enabled: true
+configuration_sysctl_params:
+  vm.swappiness: 10
+  net.ipv4.tcp_tw_reuse: 1
+  net.ipv4.ip_local_port_range: "1024 65535"
+  fs.file-max: 1048576
+
+# ---------- logging (rsyslog) ----------------------------------------------
+configuration_rsyslog_enabled: true
+configuration_rsyslog_remote_host: ""          # empty = local-only
+configuration_rsyslog_remote_port: 514
+configuration_rsyslog_remote_protocol: "udp"   # udp or tcp
+
+# ---------- MOTD ----------------------------------------------------------
+configuration_motd_enabled: true
+configuration_motd_banner_text: "AUTHORIZED ACCESS ONLY — Managed by Ansible"

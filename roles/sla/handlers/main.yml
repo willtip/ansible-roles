@@ -1,0 +1,47 @@
+---
+# ---------------------------------------------------------------------------
+# sla / handlers / main.yml
+# ---------------------------------------------------------------------------
+
+- name: sla_notify_slack
+  listen: sla_notify_slack
+  ansible.builtin.uri:
+    url: "{{ sla_notify_slack_webhook }}"
+    method: POST
+    body_format: json
+    body:
+      text: >
+        :rotating_light: *SLA BREACH* on `{{ inventory_hostname }}`
+        at `{{ ansible_date_time.iso8601 }}`.
+        Uptime breach={{ sla_uptime_result.breached | default(false) }}
+        (sev={{ sla_uptime_result.severity | default('ok') }}) |
+        Response breach={{ sla_response_result.breached | default(false) }}
+        (sev={{ sla_response_result.severity | default('ok') }}) |
+        Error-rate breach={{ sla_error_result.breached | default(false) }}
+        (sev={{ sla_error_result.severity | default('ok') }}).
+    status_code: [200]
+  when: sla_notify_slack_webhook | length > 0
+
+- name: sla_notify_pagerduty
+  listen: sla_notify_pagerduty
+  ansible.builtin.uri:
+    url: "https://events.pagerduty.com/v2/enqueue"
+    method: POST
+    body_format: json
+    body:
+      routing_key: "{{ sla_notify_pagerduty_routing_key }}"
+      event_action: trigger
+      payload:
+        summary: >
+          SLA breach on {{ inventory_hostname }} —
+          uptime={{ sla_uptime_result.breached | default(false) }},
+          response={{ sla_response_result.breached | default(false) }},
+          error_rate={{ sla_error_result.breached | default(false) }}
+        severity: "{{ [sla_uptime_result.severity | default('ok'),
+                       sla_response_result.severity | default('ok'),
+                       sla_error_result.severity | default('ok')] | sort | last }}"
+        source: "ansible-sla-role"
+        timestamp: "{{ ansible_date_time.iso8601 }}"
+      dedup_key: "sla-{{ inventory_hostname }}-{{ ansible_date_time.epoch }}"
+    status_code: [202]
+  when: sla_notify_pagerduty_routing_key | length > 0

@@ -1,0 +1,35 @@
+---
+# ---------------------------------------------------------------------------
+# approvals / defaults / main.yml
+# ---------------------------------------------------------------------------
+
+# Master switch
+approvals_enabled: true
+
+# ---------- Gate config ----------------------------------------------------
+# Unique name for THIS approval gate (set per playbook invocation)
+approvals_gate_name: "default_gate"
+
+# How long (seconds) to wait for an approval before timing out
+approvals_timeout_seconds: 3600   # 1 hour
+
+# How often (seconds) the polling loop checks for a decision
+approvals_poll_interval_seconds: 30
+
+# What action to take when the gate times out: skip | fail
+approvals_timeout_action: fail
+
+# ---------- Approval storage (file-based backend) -------------------------
+# Directory where approval tokens and decisions are stored on the host
+approvals_state_dir: /var/lib/ansible_approvals
+
+# ---------- Notification channels ------------------------------------------
+approvals_slack_webhook_url: ""
+approvals_email_recipients: []
+
+# ---------- Escalation ----------------------------------------------------
+# If true and the first-tier approver list hasn't acted within
+# approvals_escalation_timeout_seconds, an escalation notification fires.
+approvals_escalation_enabled: false
+approvals_escalation_timeout_seconds: 1800   # 30 min
+approvals_escalation_contacts: []            # email list

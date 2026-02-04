@@ -1,0 +1,14 @@
+# ---------------------------------------------------------------------------
+# 50-ansible-remote.conf — managed by Ansible.  Do NOT hand-edit.
+# Generated: {{ ansible_date_time.iso8601 }}
+# ---------------------------------------------------------------------------
+
+# Forward all messages to the central syslog aggregator
+{% if configuration_rsyslog_remote_protocol | lower == 'tcp' %}
+action(type="omfwd" target="{{ configuration_rsyslog_remote_host }}"
+       port="{{ configuration_rsyslog_remote_port }}" protocol="TCP"
+       queue.type="linkedList" queue.size="10000")
+{% else %}
+action(type="omfwd" target="{{ configuration_rsyslog_remote_host }}"
+       port="{{ configuration_rsyslog_remote_port }}" protocol="UDP")
+{% endif %}

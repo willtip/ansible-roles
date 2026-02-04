@@ -1,0 +1,11 @@
+---
+# ---------------------------------------------------------------------------
+# operational / tasks / report.yml
+# ---------------------------------------------------------------------------
+
+- name: "[operational|report] Render run-summary report"
+  ansible.builtin.template:
+    src: ops_run_report.txt.j2
+    dest: "{{ operational_backup_dir }}/ops_run_report_{{ operational_backup_timestamp }}.txt"
+    mode: "0640"
+    owner: root

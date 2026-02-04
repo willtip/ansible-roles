@@ -1,0 +1,22 @@
+---
+# ---------------------------------------------------------------------------
+# approvals / handlers / main.yml
+# ---------------------------------------------------------------------------
+
+- name: approvals_escalate
+  listen: approvals_escalate
+  ansible.builtin.uri:
+    url: "{{ approvals_slack_webhook_url }}"
+    method: POST
+    body_format: json
+    body:
+      text: >
+        :fire: *ESCALATION* — Approval gate `{{ approvals_gate_name }}`
+        on `{{ inventory_hostname }}` has been pending for
+        {{ approvals_escalation_timeout_seconds }}s without a decision.
+        Escalation contacts: {{ approvals_escalation_contacts | join(', ') }}.
+        Please approve or reject immediately.
+    status_code: [200]
+  when: >
+    approvals_slack_webhook_url | length > 0 and
+    approvals_escalation_contacts | length > 0

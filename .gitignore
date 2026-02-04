@@ -1,0 +1,56 @@
+# Ansible
+*.retry
+*.log
+.vault_pass
+vault_password
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets & Credentials
+*.pem
+*.key
+secrets.yml
+credentials/
+.env
+
+# Temporary files
+*.tmp
+*.bak
+tmp/
+temp/
+
+# Testing
+.pytest_cache/
+.tox/
+htmlcov/
+.coverage
+
+# Terraform (if mixed repo)
+*.tfstate
+*.tfstate.backup
+.terraform/
+
+# Logs & artifacts
+logs/
+artifacts/
+*.tar.gz
+*.zip

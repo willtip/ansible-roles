@@ -1,0 +1,41 @@
+--------------------------------------------------------------------------------
+  ANSIBLE TROUBLESHOOTING — DIAGNOSTIC REPORT
+  Host       : {{ inventory_hostname }} ({{ ansible_host | default(inventory_hostname) }})
+  Timestamp  : {{ ansible_date_time.iso8601 }}
+  Depth      : {{ troubleshooting_depth }}
+  Playbook   : {{ playbook_dir | default('N/A') }}
+--------------------------------------------------------------------------------
+
+{% if troubleshooting_log_scrape is defined and troubleshooting_log_scrape.stdout is defined %}
+========== LOG SCRAPE FINDINGS ==========
+{{ troubleshooting_log_scrape.stdout | truncate(5000, True, '... [truncated]') }}
+{% else %}
+========== LOG SCRAPE FINDINGS ==========
+No log scrape data available.
+{% endif %}
+
+{% if troubleshooting_disk_mem is defined and troubleshooting_disk_mem.stdout is defined %}
+========== DISK / MEMORY SNAPSHOT ==========
+{{ troubleshooting_disk_mem.stdout }}
+{% endif %}
+
+{% if troubleshooting_depth in ['deep', 'full'] and troubleshooting_deep_scan_output is defined %}
+========== DEEP SCAN (PORTS / LOCKS) ==========
+{{ troubleshooting_deep_scan_output.stdout | truncate(3000, True, '... [truncated]') }}
+{% endif %}
+
+{% if troubleshooting_depth == 'full' and troubleshooting_thread_dump is defined %}
+========== THREAD DUMP ==========
+{{ troubleshooting_thread_dump.stdout | truncate(3000, True, '... [truncated]') }}
+{% endif %}
+
+{% if troubleshooting_services | length > 0 %}
+========== MONITORED SERVICES ==========
+{% for svc in troubleshooting_services %}
+  - {{ svc }}
+{% endfor %}
+{% endif %}
+
+--------------------------------------------------------------------------------
+  END OF REPORT
+--------------------------------------------------------------------------------

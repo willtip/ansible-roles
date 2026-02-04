@@ -1,0 +1,38 @@
+---
+# ---------------------------------------------------------------------------
+# operational / defaults / main.yml
+# ---------------------------------------------------------------------------
+
+# Master switch
+operational_enabled: true
+
+# ---------- Health-check services ------------------------------------------
+# List of service names to health-check (e.g. nginx, postgresql, app)
+operational_services: []
+# Acceptable states; anything not in this list triggers a restart attempt
+operational_healthy_states:
+  - running
+
+# ---------- Graceful-restart window ----------------------------------------
+# Seconds to wait between stopping and starting a service
+operational_restart_grace_seconds: 5
+# Max seconds to wait for a service to reach 'running' after start
+operational_start_timeout_seconds: 30
+
+# ---------- Disk & memory housekeeping -------------------------------------
+# Directories to purge files older than operational_purge_max_age_days
+operational_purge_directories:
+  - /tmp
+  - /var/tmp
+operational_purge_max_age_days: 3
+
+# ---------- Backup settings -----------------------------------------------
+operational_backup_enabled: true
+operational_backup_dir: /var/backups/ansible_ops
+# Backup targets: paths or services that expose a dump command
+operational_backup_targets: []
+# Retention: how many backup generations to keep
+operational_backup_retention_count: 5
+
+# ---------- Notifications -------------------------------------------------
+operational_slack_webhook_url: ""

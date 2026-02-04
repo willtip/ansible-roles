@@ -1,0 +1,24 @@
+---
+# ---------------------------------------------------------------------------
+# configuration / handlers / main.yml
+# ---------------------------------------------------------------------------
+
+- name: configuration_restart_chrony
+  listen: configuration_restart_chrony
+  ansible.builtin.service:
+    name: "{{ configuration_ntp_service_name }}"
+    state: restarted
+  when: configuration_ntp_enabled
+
+- name: configuration_apply_sysctl
+  listen: configuration_apply_sysctl
+  ansible.builtin.shell:
+    cmd: "{{ configuration_sysctl_validate_cmd }}"
+  changed_when: true
+
+- name: configuration_restart_rsyslog
+  listen: configuration_restart_rsyslog
+  ansible.builtin.service:
+    name: "{{ configuration_rsyslog_service_name }}"
+    state: restarted
+  when: configuration_rsyslog_enabled

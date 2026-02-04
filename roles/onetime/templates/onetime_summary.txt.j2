@@ -1,0 +1,37 @@
+================================================================================
+  ONE-TIME OPERATION SUMMARY
+  Operation ID : {{ onetime_operation_id }}
+  Host         : {{ inventory_hostname }}
+  Timestamp    : {{ ansible_date_time.iso8601 }}
+  Forced       : {{ onetime_force }}
+================================================================================
+
+---- PREFLIGHT ------------------------------------------------------------------
+{% if onetime_preflight_results is defined and onetime_preflight_results.results is defined %}
+{% for r in onetime_preflight_results.results %}
+  [{{ 'PASS' if r.rc == 0 else 'FAIL' }}] {{ r.cmd }}
+{% endfor %}
+{% else %}
+  No preflight checks configured.
+{% endif %}
+
+---- MIGRATION ------------------------------------------------------------------
+{% if onetime_migration_result is defined %}
+  Exit code : {{ onetime_migration_result.rc }}
+  Stdout    :
+{{ onetime_migration_result.stdout | default('(empty)') | indent(12) }}
+{% else %}
+  No migration script configured.
+{% endif %}
+
+---- MARKER ---------------------------------------------------------------------
+  Marker file : {{ onetime_marker_file }}
+  Status      : {{ 'WRITTEN' if not onetime_force else 'OVERWRITTEN (forced)' }}
+
+---- AUDIT LOG ------------------------------------------------------------------
+  Log file    : {{ onetime_audit_log_file }}
+
+================================================================================
+  Rollback script : {{ onetime_rollback_script | default('none') }}
+  Rollback on err : {{ onetime_rollback_on_failure }}
+================================================================================

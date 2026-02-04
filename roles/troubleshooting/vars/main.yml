@@ -1,0 +1,37 @@
+---
+# ---------------------------------------------------------------------------
+# troubleshooting / vars / main.yml
+# Higher precedence than defaults — intended for environment-specific tuning.
+# ---------------------------------------------------------------------------
+
+# Internal staging structure mirrors the depth enum
+troubleshooting_depth_map:
+  basic:
+    - service_status
+    - disk_memory_snapshot
+  deep:
+    - service_status
+    - disk_memory_snapshot
+    - open_ports
+    - stale_locks
+    - core_dump_scan
+  full:
+    - service_status
+    - disk_memory_snapshot
+    - open_ports
+    - stale_locks
+    - core_dump_scan
+    - thread_dump
+    - network_trace
+
+# Template rendered into the artifact directory at run-start for indexing
+troubleshooting_report_template: diag_report.txt.j2
+
+# Script dropped via files/ that performs the deep port-scan helper
+troubleshooting_deep_scan_script: deep_scan.sh
+
+# Maximum size (MB) a single captured log excerpt is allowed to be
+troubleshooting_max_log_excerpt_mb: 50
+
+# Grace-period in seconds before an auto-restart is attempted
+troubleshooting_restart_grace_seconds: 10
